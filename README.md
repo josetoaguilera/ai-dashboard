@@ -103,24 +103,53 @@ Users → Conversations → Messages → Prompts
 
 ### Modelo de Datos
 
-````mermaid
-erDiagram
-    User {
-        string id PK
-        string email UK
-        string name
-        string password
-        string avatarUrl
-    }
+```sql
+-- Users Table
+CREATE TABLE users (
+    id          VARCHAR PRIMARY KEY,
+    email       VARCHAR UNIQUE NOT NULL,
+    name        VARCHAR NOT NULL,
+    password    VARCHAR NOT NULL,
+    avatar_url  VARCHAR
+);
 
-    Conversation {
-        string id PK
-        string title
-        enum channel "WEB|WHATSAPP|INSTAGRAM"
-        enum status "OPEN|CLOSED"
-        int rating
-        int durationSeconds
-        string userId FK
+-- Conversations Table  
+CREATE TABLE conversations (
+    id               VARCHAR PRIMARY KEY,
+    title            VARCHAR NOT NULL,
+    channel          ENUM('WEB', 'WHATSAPP', 'INSTAGRAM') NOT NULL,
+    status           ENUM('OPEN', 'CLOSED') NOT NULL DEFAULT 'OPEN',
+    rating           INTEGER CHECK (rating >= 1 AND rating <= 5),
+    duration_seconds INTEGER DEFAULT 0,
+    user_id          VARCHAR REFERENCES users(id),
+    created_at       TIMESTAMP DEFAULT NOW(),
+    updated_at       TIMESTAMP DEFAULT NOW()
+);
+
+-- Messages Table
+CREATE TABLE messages (
+    id              VARCHAR PRIMARY KEY,
+    content         TEXT NOT NULL,
+    role            ENUM('USER', 'ASSISTANT') NOT NULL,
+    conversation_id VARCHAR REFERENCES conversations(id),
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+
+-- Prompts Table (AI Personalities)
+CREATE TABLE prompts (
+    id          VARCHAR PRIMARY KEY,
+    name        VARCHAR NOT NULL,
+    content     TEXT NOT NULL,
+    personality ENUM('YOUNG', 'OLD', 'GRINGO', 'PROFESSIONAL') NOT NULL,
+    is_active   BOOLEAN DEFAULT true,
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Relaciones:**
+- `users` 1:N `conversations` (Un usuario puede tener múltiples conversaciones)
+- `conversations` 1:N `messages` (Una conversación contiene múltiples mensajes)
+- `prompts` standalone (Personalidades de IA reutilizables)
 ## 🤖 Herramientas de IA Utilizadas
 
 ### En el Desarrollo
