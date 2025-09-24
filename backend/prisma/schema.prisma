@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  password      String
+  avatarUrl     String?  @map("avatar_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  conversations Conversation[]
+  
+  @@map("users")
+}
+
+model Conversation {
+  id              String            @id @default(uuid())
+  userId          String            @map("user_id")
+  title           String
+  channel         ConversationChannel @default(WEB)
+  status          ConversationStatus  @default(OPEN)
+  rating          Int?              // 1-5 rating
+  durationSeconds Int?              @map("duration_seconds")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+  
+  @@map("conversations")
+}
+
+model Message {
+  id               String   @id @default(uuid())
+  conversationId   String   @map("conversation_id")
+  content          String
+  role             MessageRole
+  promptId         String?  @map("prompt_id")
+  responseTimeMs   Int?     @map("response_time_ms")
+  createdAt        DateTime @default(now()) @map("created_at")
+  
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  prompt       Prompt?      @relation(fields: [promptId], references: [id])
+  
+  @@map("messages")
+}
+
+model Prompt {
+  id        String   @id @default(uuid())
+  name      String
+  content   String
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  messages Message[]
+  
+  @@map("prompts")
+}
+
+enum ConversationChannel {
+  WEB
+  WHATSAPP
+  INSTAGRAM
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+

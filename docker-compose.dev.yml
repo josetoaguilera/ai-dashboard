@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-dashboard-db
+    environment:
+      POSTGRES_DB: ai_dashboard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai-dashboard-network
+
+  # Redis for session storage and caching
+  redis:
+    image: redis:7-alpine
+    container_name: ai-dashboard-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ai-dashboard-network
+
+  # Development container with Node.js and all tools
+  devcontainer:
+    image: node:18-bullseye
+    container_name: ai-dashboard-devcontainer
+    working_dir: /workspace
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ai_dashboard
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - "3000:3000"  # Frontend
+      - "3001:3001"  # Backend
+      - "9229:9229"  # Node.js debugging
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/workspace
+      - node_modules_cache:/workspace/node_modules
+      - backend_node_modules:/workspace/backend/node_modules
+      - frontend_node_modules:/workspace/frontend/node_modules
+    networks:
+      - ai-dashboard-network
+    # Keep container running
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  node_modules_cache:
+  backend_node_modules:
+  frontend_node_modules:
+
+networks:
+  ai-dashboard-network:
+    driver: bridge
